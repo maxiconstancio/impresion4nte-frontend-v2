@@ -69,24 +69,30 @@ export default function NuevaVenta() {
   const total = venta.items
     .reduce((sum, i) => sum + i.precio_unitario * i.cantidad, 0)
     .toFixed(2);
+    const [toast, setToast] = useState("");
 
-  const guardarVenta = async () => {
-    await api.post("/ventas", {
-      tipo: venta.tipo,
-      metodo_pago: venta.metodo_pago,
-      fecha: venta.fecha,
-      productos: venta.items,
-    });
-    alert("Venta guardada");
-    setVenta({
-      tipo: "feria",
-      metodo_pago: "efectivo",
-      fecha: new Date().toISOString(),
-      items: [],
-    });
-    setBusqueda("");
-    cargarProductos();
-  };
+    const guardarVenta = async () => {
+      await api.post("/ventas", {
+        tipo: venta.tipo,
+        metodo_pago: venta.metodo_pago,
+        fecha: venta.fecha,
+        productos: venta.items,
+      });
+    
+      setVenta({
+        tipo: "feria",
+        metodo_pago: "efectivo",
+        fecha: new Date().toISOString(),
+        items: [],
+      });
+    
+      setBusqueda("");
+      cargarProductos();
+    
+      setToast("✅ Venta guardada correctamente");
+      setTimeout(() => setToast(""), 3000);
+    };
+    
 
   const productosFiltrados = productos.filter((p) =>
     p.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -233,6 +239,11 @@ export default function NuevaVenta() {
           </button>
         </div>
       )}
+    {toast && (
+  <div className="fixed bottom-20 right-4 bg-green-600 text-white px-4 py-2 rounded shadow z-50 animate-fade-in">
+    {toast}
+  </div>
+)}
     </div>
   );
 }
