@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
@@ -42,6 +43,17 @@ export default function NuevaVenta() {
       items: venta.items.map((i) =>
         i.producto_id === producto_id
           ? { ...i, cantidad: parseInt(cantidad) }
+          : i
+      ),
+    });
+  };
+
+  const actualizarPrecio = (producto_id, precio_unitario) => {
+    setVenta({
+      ...venta,
+      items: venta.items.map((i) =>
+        i.producto_id === producto_id
+          ? { ...i, precio_unitario: parseFloat(precio_unitario) }
           : i
       ),
     });
@@ -179,7 +191,18 @@ export default function NuevaVenta() {
                       className="w-16 border rounded px-2"
                     />
                   </td>
-                  <td>${item.precio_unitario.toFixed(2)}</td>
+                  <td>
+                    <input
+                      type="number"
+                      value={item.precio_unitario}
+                      min={0}
+                      step={0.01}
+                      onChange={(e) =>
+                        actualizarPrecio(item.producto_id, e.target.value)
+                      }
+                      className="w-20 border rounded px-2"
+                    />
+                  </td>
                   <td>
                     ${(item.precio_unitario * item.cantidad).toFixed(2)}
                   </td>
