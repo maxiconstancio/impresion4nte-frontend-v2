@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { obtenerResumen, obtenerProximasCuotas } from "../services/dashboardService";
+import GraficoMensual from "./GraficoMensual";
 
 export default function Dashboard() {
   const [resumen, setResumen] = useState(null);
@@ -63,6 +64,8 @@ export default function Dashboard() {
           </ul>
         )}
       </div>
-    </div>
+    
+      <GraficoMensual />
+</div>
   );
 }

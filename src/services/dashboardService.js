@@ -10,6 +10,11 @@ export async function obtenerResumen(fechaDesde, fechaHasta) {
 }
 
 export async function obtenerProximasCuotas(dias = 15) {
-  const res = await api.get(`/cuotas/proximas`, { params: { dias } });
+  const res = await api.get("/cuotas/proximas", { params: { dias } });
+  return res.data;
+}
+
+export async function obtenerEvolucionMensual() {
+  const res = await api.get("/dashboard/mensual");
   return res.data;
 }
