@@ -7,6 +7,8 @@ import Productos from "./components/Productos";
 import Parametros from "./components/Parametros";
 import NuevaVenta from "./components/NuevaVenta";
 import ImportarProductos from "./components/ImportarProductos";
+import HistorialVentas from "./components/HistorialVentas";
+import GraficoVentasPorHora from "./components/GraficoVentasPorHora";
 
 export default function App() {
   return (
@@ -30,6 +32,22 @@ export default function App() {
               }
             >
               Ventas
+            </NavLink>
+            <NavLink
+              to="/historial"
+              className={({ isActive }) =>
+                isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-blue-500"
+              }
+            >
+              Historial
+            </NavLink>
+            <NavLink
+              to="/ventas-horas"
+              className={({ isActive }) =>
+                isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-blue-500"
+              }
+            >
+              Ventas por hora
             </NavLink>
             <NavLink
               to="/productos"
@@ -93,6 +111,8 @@ export default function App() {
           <Route path="/parametros" element={<Parametros />} />
           <Route path="/importar" element={<ImportarProductos />} />
           <Route path="/ventas" element={<NuevaVenta />} />
+          <Route path="/historial" element={<HistorialVentas />} />
+          <Route path="/ventas-horas" element={<GraficoVentasPorHora />} />
           <Route path="*" element={<div className="text-center text-gray-500">Página no encontrada</div>} />
         </Routes>
       </main>
