@@ -5,6 +5,8 @@ import Gastos from "./components/Gastos";
 import Proveedores from "./components/Proveedores";
 import Productos from "./components/Productos";
 import Parametros from "./components/Parametros";
+import NuevaVenta from "./components/NuevaVenta";
+import ImportarProductos from "./components/ImportarProductos";
 
 export default function App() {
   return (
@@ -20,6 +22,14 @@ export default function App() {
               }
             >
               Dashboard
+            </NavLink>
+            <NavLink
+              to="/ventas"
+              className={({ isActive }) =>
+                isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-blue-500"
+              }
+            >
+              Ventas
             </NavLink>
             <NavLink
               to="/productos"
@@ -61,6 +71,14 @@ export default function App() {
             >
               Parametros
             </NavLink>
+            <NavLink
+              to="/importar"
+              className={({ isActive }) =>
+                isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-blue-500"
+              }
+            >
+              Importar
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -73,6 +91,8 @@ export default function App() {
           <Route path="/gastos" element={<Gastos />} />
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/parametros" element={<Parametros />} />
+          <Route path="/importar" element={<ImportarProductos />} />
+          <Route path="/ventas" element={<NuevaVenta />} />
           <Route path="*" element={<div className="text-center text-gray-500">Página no encontrada</div>} />
         </Routes>
       </main>
