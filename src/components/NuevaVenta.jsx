@@ -3,6 +3,7 @@ import api from "../services/api";
 
 export default function NuevaVenta() {
   const [productos, setProductos] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
   const [venta, setVenta] = useState({
     tipo: "feria",
     metodo_pago: "efectivo",
@@ -68,6 +69,10 @@ export default function NuevaVenta() {
     cargarProductos();
   };
 
+  const productosFiltrados = productos.filter((p) =>
+    p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold">🛒 Registrar Venta</h2>
@@ -99,24 +104,35 @@ export default function NuevaVenta() {
           />
         </div>
 
-        <div>
-          <h3 className="text-md font-semibold mb-2">📦 Productos disponibles</h3>
-          <div className="grid md:grid-cols-4 gap-2">
-            {productos.map(p => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => agregarItem(p)}
-                className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
-              >
-                {p.nombre}
-              </button>
+        <div className="space-y-3">
+          <h3 className="text-md font-semibold">📦 Productos disponibles</h3>
+          <input
+            type="text"
+            placeholder="Buscar producto..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="border px-3 py-2 rounded w-full md:w-1/3"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {productosFiltrados.map((p) => (
+              <div key={p.id} className="border rounded p-3 bg-white shadow text-sm space-y-1">
+                <div className="font-semibold truncate">{p.nombre}</div>
+                <div>💲 ${parseFloat(p.precio_unitario).toFixed(2)}</div>
+                <div>📦 Stock: {p.stock}</div>
+                <button
+                  type="button"
+                  onClick={() => agregarItem(p)}
+                  className="mt-2 w-full bg-blue-600 text-white px-2 py-1 rounded text-sm"
+                >
+                  Agregar
+                </button>
+              </div>
             ))}
           </div>
         </div>
 
         {venta.items.length > 0 && (
-          <div className="bg-white shadow rounded p-4">
+          <div className="bg-white shadow rounded p-4 mt-6">
             <h3 className="text-md font-semibold mb-2">🧾 Detalle de venta</h3>
             <table className="w-full text-sm">
               <thead>
@@ -160,7 +176,7 @@ export default function NuevaVenta() {
           </div>
         )}
 
-        <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded">
+        <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded">
           Guardar venta
         </button>
       </form>
