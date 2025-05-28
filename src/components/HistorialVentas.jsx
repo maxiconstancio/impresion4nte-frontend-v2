@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import ModalEditarVenta from "./ModalEditarVenta";
 
 export default function HistorialVentas() {
   const [ventas, setVentas] = useState([]);
+  const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
   const [filtroTipo, setFiltroTipo] = useState("");
   const [filtroMetodo, setFiltroMetodo] = useState("");
   const [filtroDesde, setFiltroDesde] = useState("");
@@ -11,6 +13,13 @@ export default function HistorialVentas() {
   const cargarVentas = async () => {
     const res = await api.get("/ventas");
     setVentas(res.data);
+  };
+
+  const eliminarVenta = async (id) => {
+    if (confirm("¿Estás seguro de que querés eliminar esta venta?")) {
+      await api.delete(`/ventas/${id}`);
+      await cargarVentas();
+    }
   };
 
   useEffect(() => {
@@ -103,6 +112,7 @@ export default function HistorialVentas() {
               <th className="px-4 py-2">Método</th>
               <th className="px-4 py-2">Total</th>
               <th className="px-4 py-2">Productos</th>
+              <th className="px-4 py-2 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -123,6 +133,22 @@ export default function HistorialVentas() {
                     ))}
                   </ul>
                 </td>
+                <td className="px-4 py-2 text-center space-x-2 whitespace-nowrap">
+                  <button
+                    onClick={() => setVentaSeleccionada(v)}
+                    className="text-blue-600 hover:underline"
+                    title="Editar"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => eliminarVenta(v.id)}
+                    className="text-red-600 hover:underline"
+                    title="Eliminar"
+                  >
+                    🗑️
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -132,6 +158,14 @@ export default function HistorialVentas() {
       <div className="mt-6 text-right text-lg font-semibold space-y-2">
         <div>🧾 Total ventas filtradas: ${totalGeneral.toFixed(2)}</div>
       </div>
+
+      {ventaSeleccionada && (
+        <ModalEditarVenta
+          venta={ventaSeleccionada}
+          onClose={() => setVentaSeleccionada(null)}
+          onGuardado={cargarVentas}
+        />
+      )}
     </div>
   );
 }
