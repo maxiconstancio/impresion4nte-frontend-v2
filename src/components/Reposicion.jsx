@@ -5,7 +5,7 @@ export default function Reposicion() {
   const [productos, setProductos] = useState([]);
 
   const cargarReposicion = async () => {
-    const res = await api.get("/reposicion");
+    const res = await api.get("/productos/reposicion");
     setProductos(res.data);
   };
 
