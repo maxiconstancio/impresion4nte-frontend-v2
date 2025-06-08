@@ -2,19 +2,24 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 
 export default function NuevoPedido() {
-  const [productos, setProductos] = useState([]);
+  const [sugerencias, setSugerencias] = useState([]);
   const [seleccionados, setSeleccionados] = useState([]);
   const [cliente, setCliente] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [busqueda, setBusqueda] = useState("");
 
   useEffect(() => {
-    const cargarProductos = async () => {
-      const res = await api.get("/productos");
-      setProductos(res.data);
-    };
-    cargarProductos();
-  }, []);
+    const delayDebounce = setTimeout(async () => {
+      if (busqueda.length >= 3) {
+        const res = await api.get(`/productos?search=${busqueda}`);
+        setSugerencias(res.data);
+      } else {
+        setSugerencias([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [busqueda]);
 
   const agregarProducto = (producto) => {
     const yaExiste = seleccionados.find((p) => p.id === producto.id);
@@ -24,6 +29,8 @@ export default function NuevoPedido() {
         { ...producto, cantidad: 1, observaciones: "" },
       ]);
     }
+    setBusqueda("");
+    setSugerencias([]);
   };
 
   const actualizarSeleccionado = (id, campo, valor) => {
@@ -42,8 +49,10 @@ export default function NuevoPedido() {
       comentarios,
       productos: seleccionados.map((p) => ({
         id: p.id,
+        nombre: p.nombre, // 🔹 agregado
         cantidad: p.cantidad,
         observaciones: p.observaciones,
+        precio_unitario: parseFloat(p.precio_unitario),
       })),
     };
     await api.post("/pedidos", pedido);
@@ -52,6 +61,7 @@ export default function NuevoPedido() {
     setComentarios("");
     setSeleccionados([]);
   };
+  
 
   return (
     <div className="space-y-6 pb-20">
@@ -73,111 +83,109 @@ export default function NuevoPedido() {
         />
       </div>
 
-      {/* Buscador + listado de productos */}
-      <div className="space-y-3">
+      {/* Autocompletado */}
+      <div className="relative w-full md:w-1/2">
         <input
           type="text"
           placeholder="Buscar producto..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="border px-3 py-2 rounded w-full md:w-1/3"
+          className="border px-3 py-2 rounded w-full"
         />
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white rounded-xl shadow text-sm">
-            <thead>
-              <tr className="bg-gray-100 text-left text-gray-600">
-                <th className="px-4 py-2">Nombre</th>
-                <th className="px-4 py-2">Descripción</th>
-                <th className="px-4 py-2">Precio</th>
-                <th className="px-4 py-2">Stock</th>
-                <th className="px-4 py-2">Agregar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {productos
-                .filter((p) => p.nombre.toLowerCase().includes(busqueda.toLowerCase()))
-                .map((p) => (
-                  <tr key={p.id} className="border-t">
-                    <td className="px-4 py-2">{p.nombre}</td>
-                    <td className="px-4 py-2">{p.descripcion}</td>
-                    <td className="px-4 py-2">${parseFloat(p.precio_unitario).toFixed(2)}</td>
-                    <td className="px-4 py-2">{p.stock}</td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => agregarProducto(p)}
-                        className="text-blue-600 hover:underline"
-                      >
-                        ➕
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
+        {sugerencias.length > 0 && (
+          <ul className="absolute z-10 w-full bg-white border rounded shadow max-h-48 overflow-y-auto">
+            {sugerencias.map((p) => (
+              <li
+                key={p.id}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between"
+                onClick={() => agregarProducto(p)}
+              >
+                <span>{p.nombre}</span>
+                <span className="text-sm text-gray-500">
+                  ${parseFloat(p.precio_unitario).toFixed(2)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Productos en el pedido */}
       {seleccionados.length > 0 && (
-        <>
-          <h3 className="font-semibold">🧾 Productos en el pedido</h3>
-          <div className="overflow-x-auto bg-white rounded-xl shadow">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-100 text-gray-700">
-                <tr>
-                  <th className="px-4 py-2 text-left">Producto</th>
-                  <th className="px-4 py-2 text-left">Cantidad</th>
-                  <th className="px-4 py-2 text-left">Observaciones</th>
-                  <th className="px-4 py-2 text-left">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {seleccionados.map((p) => (
-                  <tr key={p.id} className="border-t">
-                    <td className="px-4 py-2">{p.nombre}</td>
-                    <td className="px-4 py-2">
-                      <input
-                        type="number"
-                        value={p.cantidad}
-                        min={1}
-                        onChange={(e) =>
-                          actualizarSeleccionado(p.id, "cantidad", e.target.value)
-                        }
-                        className="border px-2 py-1 rounded w-20"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        type="text"
-                        value={p.observaciones}
-                        onChange={(e) =>
-                          actualizarSeleccionado(p.id, "observaciones", e.target.value)
-                        }
-                        className="border px-2 py-1 rounded w-full"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => eliminarProducto(p.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        🗑️
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+  <>
+    <h3 className="font-semibold">🧾 Productos en el pedido</h3>
+    <div className="overflow-x-auto bg-white rounded-xl shadow">
+      <table className="min-w-full text-sm">
+        <thead className="bg-gray-100 text-gray-700">
+          <tr>
+            <th className="px-4 py-2 text-left">Producto</th>
+            <th className="px-4 py-2 text-left">Cantidad</th>
+            <th className="px-4 py-2 text-left">Precio</th>
+            <th className="px-4 py-2 text-left">Subtotal</th>
+            <th className="px-4 py-2 text-left">Observaciones</th>
+            <th className="px-4 py-2 text-left">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {seleccionados.map((p) => (
+            <tr key={p.id} className="border-t">
+              <td className="px-4 py-2">{p.nombre}</td>
+              <td className="px-4 py-2">
+                <input
+                  type="number"
+                  value={p.cantidad}
+                  min={1}
+                  onChange={(e) =>
+                    actualizarSeleccionado(p.id, "cantidad", e.target.value)
+                  }
+                  className="border px-2 py-1 rounded w-20"
+                />
+              </td>
+              <td className="px-4 py-2">
+                ${parseFloat(p.precio_unitario).toFixed(2)}
+              </td>
+              <td className="px-4 py-2">
+                ${(p.cantidad * p.precio_unitario).toFixed(2)}
+              </td>
+              <td className="px-4 py-2">
+                <input
+                  type="text"
+                  value={p.observaciones}
+                  onChange={(e) =>
+                    actualizarSeleccionado(p.id, "observaciones", e.target.value)
+                  }
+                  className="border px-2 py-1 rounded w-full"
+                />
+              </td>
+              <td className="px-4 py-2">
+                <button
+                  onClick={() => eliminarProducto(p.id)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
 
-          <button
-            onClick={guardarPedido}
-            className="bg-blue-600 text-white px-6 py-2 rounded mt-4"
-          >
-            Confirmar pedido
-          </button>
-        </>
-      )}
+    <div className="text-right mt-2 text-lg font-semibold">
+      💰 Total: $
+      {seleccionados
+        .reduce((acc, p) => acc + p.cantidad * p.precio_unitario, 0)
+        .toFixed(2)}
+    </div>
+
+    <button
+      onClick={guardarPedido}
+      className="bg-blue-600 text-white px-6 py-2 rounded mt-4"
+    >
+      Confirmar pedido
+    </button>
+  </>
+)}
     </div>
   );
 }

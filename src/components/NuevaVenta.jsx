@@ -1,25 +1,29 @@
-
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
 export default function NuevaVenta() {
-  const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [sugerencias, setSugerencias] = useState([]);
   const [venta, setVenta] = useState({
     tipo: "feria",
     metodo_pago: "efectivo",
     fecha: new Date().toISOString(),
     items: [],
   });
-
-  const cargarProductos = async () => {
-    const res = await api.get("/productos");
-    setProductos(res.data.filter((p) => p.activo && p.stock > 0));
-  };
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
-    cargarProductos();
-  }, []);
+    const delayDebounce = setTimeout(async () => {
+      if (busqueda.length >= 3) {
+        const res = await api.get(`/productos?search=${busqueda}`);
+        setSugerencias(res.data);
+      } else {
+        setSugerencias([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [busqueda]);
 
   const agregarItem = (producto) => {
     if (venta.items.find((i) => i.producto_id === producto.id)) return;
@@ -35,6 +39,8 @@ export default function NuevaVenta() {
         },
       ],
     });
+    setBusqueda("");
+    setSugerencias([]);
   };
 
   const actualizarCantidad = (producto_id, cantidad) => {
@@ -69,34 +75,27 @@ export default function NuevaVenta() {
   const total = venta.items
     .reduce((sum, i) => sum + i.precio_unitario * i.cantidad, 0)
     .toFixed(2);
-    const [toast, setToast] = useState("");
 
-    const guardarVenta = async () => {
-      await api.post("/ventas", {
-        tipo: venta.tipo,
-        metodo_pago: venta.metodo_pago,
-        fecha: venta.fecha,
-        productos: venta.items,
-      });
-    
-      setVenta({
-        tipo: "feria",
-        metodo_pago: "efectivo",
-        fecha: new Date().toISOString(),
-        items: [],
-      });
-    
-      setBusqueda("");
-      cargarProductos();
-    
-      setToast("✅ Venta guardada correctamente");
-      setTimeout(() => setToast(""), 3000);
-    };
-    
+  const guardarVenta = async () => {
+    await api.post("/ventas", {
+      tipo: venta.tipo,
+      metodo_pago: venta.metodo_pago,
+      fecha: venta.fecha,
+      productos: venta.items,
+    });
 
-  const productosFiltrados = productos.filter((p) =>
-    p.nombre.toLowerCase().includes(busqueda.toLowerCase())
-  );
+    setVenta({
+      tipo: "feria",
+      metodo_pago: "efectivo",
+      fecha: new Date().toISOString(),
+      items: [],
+    });
+
+    setBusqueda("");
+    setSugerencias([]);
+    setToast("✅ Venta guardada correctamente");
+    setTimeout(() => setToast(""), 3000);
+  };
 
   return (
     <div className="space-y-6 pb-28">
@@ -113,7 +112,9 @@ export default function NuevaVenta() {
         </select>
         <select
           value={venta.metodo_pago}
-          onChange={(e) => setVenta({ ...venta, metodo_pago: e.target.value })}
+          onChange={(e) =>
+            setVenta({ ...venta, metodo_pago: e.target.value })
+          }
           className="border px-3 py-2 rounded"
         >
           <option value="efectivo">Efectivo</option>
@@ -128,50 +129,38 @@ export default function NuevaVenta() {
         />
       </div>
 
-      <div className="space-y-3">
+      <div className="relative w-full md:w-1/2">
         <input
           type="text"
           placeholder="Buscar producto..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="border px-3 py-2 rounded w-full md:w-1/3"
+          className="border px-3 py-2 rounded w-full"
         />
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white rounded-xl shadow text-sm">
-            <thead>
-              <tr className="bg-gray-100 text-left text-gray-600">
-                <th className="px-4 py-2">Nombre</th>
-                <th className="px-4 py-2">Descripción</th>
-                <th className="px-4 py-2">Precio</th>
-                <th className="px-4 py-2">Stock</th>
-                <th className="px-4 py-2">Agregar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {productosFiltrados.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="px-4 py-2">{p.nombre}</td>
-                  <td className="px-4 py-2">{p.descripcion}</td>
-                  <td className="px-4 py-2">${parseFloat(p.precio_unitario).toFixed(2)}</td>
-                  <td className="px-4 py-2">{p.stock}</td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() => agregarItem(p)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      ➕
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {sugerencias.length > 0 && (
+          <ul className="absolute z-10 w-full bg-white border rounded shadow max-h-48 overflow-y-auto">
+            {sugerencias.map((p) => (
+              <li
+                key={p.id}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between"
+                onClick={() => agregarItem(p)}
+              >
+                <span>{p.nombre}</span>
+                <span className="text-sm text-gray-500">
+                  ${parseFloat(p.precio_unitario).toFixed(2)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {venta.items.length > 0 && (
         <div className="bg-white shadow rounded p-4 mt-6">
           <h3 className="text-md font-semibold mb-2">🧾 Detalle de venta</h3>
+          <p className="text-sm text-gray-500 mb-3">
+            💡 Podés modificar el precio si querés aplicar un descuento manual.
+          </p>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-600">
@@ -239,11 +228,12 @@ export default function NuevaVenta() {
           </button>
         </div>
       )}
-    {toast && (
-  <div className="fixed bottom-20 right-4 bg-green-600 text-white px-4 py-2 rounded shadow z-50 animate-fade-in">
-    {toast}
-  </div>
-)}
+
+      {toast && (
+        <div className="fixed bottom-20 right-4 bg-green-600 text-white px-4 py-2 rounded shadow z-50 animate-fade-in">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

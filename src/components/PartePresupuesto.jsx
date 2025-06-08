@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import PrecioSugeridoIA from "./PrecioSugeridoIA";
 
-export default function PartePresupuesto({ parte, onChange, metodoPago }) {
+export default function PartePresupuesto({
+  parte,
+  onChange,
+  metodoPago,
+  precioKilo,
+  costoHoraImpresora,
+  multiplicador,
+}) {
   const [nombre, setNombre] = useState(parte?.nombre || "");
   const [peso, setPeso] = useState(parte?.peso || 0);
   const [tiempo, setTiempo] = useState(parte?.tiempo || 0);

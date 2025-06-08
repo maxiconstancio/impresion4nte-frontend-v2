@@ -19,9 +19,32 @@ export default function HistorialPedidos() {
   const actualizarEstado = async (id, nuevoEstado) => {
     try {
       await api.put(`/pedidos/${id}`, { estado: nuevoEstado });
+
+      if (nuevoEstado === "pagado") {
+        const pedido = pedidos.find((p) => p.id === id);
+
+        if (pedido && pedido.Productos?.length) {
+          const productos = pedido.Productos.map((prod) => ({
+            producto_id: prod.id,
+            cantidad: prod.PedidoProducto?.cantidad || 1,
+            precio_unitario:
+              parseFloat(prod.PedidoProducto?.precio_unitario ?? prod.precio_unitario) || 0,
+          }));
+
+          await api.post("/ventas", {
+            tipo: "pedido",
+            metodo_pago: "efectivo",
+            fecha: new Date().toISOString(),
+            cliente: pedido.cliente,
+            comentarios: `Venta generada automáticamente desde pedido #${pedido.id}`,
+            productos,
+          });
+        }
+      }
+
       cargarPedidos();
     } catch (err) {
-      console.error("Error al actualizar estado:", err);
+      console.error("Error al actualizar estado o registrar venta:", err);
     }
   };
 
@@ -31,7 +54,47 @@ export default function HistorialPedidos() {
     "listo",
     "entregado",
     "cancelado",
+    "pagado",
   ];
+
+  const obtenerClaseColor = (estado) => {
+    return {
+      pendiente: "bg-yellow-50",
+      en_producción: "bg-blue-50",
+      listo: "bg-indigo-50",
+      entregado: "bg-green-50",
+      cancelado: "bg-red-50",
+      pagado: "bg-emerald-50",
+    }[estado] || "";
+  };
+
+  const estadoBadge = (estado) => {
+    const estilos = {
+      pendiente: "text-yellow-800 bg-yellow-200",
+      en_producción: "text-blue-800 bg-blue-200",
+      listo: "text-indigo-800 bg-indigo-200",
+      entregado: "text-green-800 bg-green-200",
+      cancelado: "text-red-800 bg-red-200",
+      pagado: "text-emerald-800 bg-emerald-200",
+    };
+
+    const iconos = {
+      pendiente: "🕓",
+      en_producción: "⚙️",
+      listo: "📦",
+      entregado: "✅",
+      cancelado: "❌",
+      pagado: "💵",
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded text-xs font-medium ${estilos[estado]}`}
+      >
+        {iconos[estado]} {estado.replaceAll("_", " ")}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -60,24 +123,29 @@ export default function HistorialPedidos() {
               <th className="px-4 py-2">Cliente</th>
               <th className="px-4 py-2">Fecha</th>
               <th className="px-4 py-2">Estado</th>
-              <th className="px-4 py-2">Total</th>
+              <th className="px-4 py-2 text-right">Total</th>
               <th className="px-4 py-2">Cambiar estado</th>
               <th className="px-4 py-2">Detalle</th>
             </tr>
           </thead>
           <tbody>
-                {console.log(pedidos)}
-                {
-            pedidos
+            {pedidos
               .filter((p) => filtroEstado === "todos" || p.estado === filtroEstado)
               .map((p) => (
-                <tr key={p.id} className="border-t">
+                <tr key={p.id} className={`border-t ${obtenerClaseColor(p.estado)}`}>
                   <td className="px-4 py-2">{p.cliente}</td>
-                  <td className="px-4 py-2">{new Date(p.fecha).toLocaleDateString()}</td>
-                  <td className="px-4 py-2 capitalize">{p.estado.replaceAll("_", " ")}</td>
+                  <td className="px-4 py-2">
+                    {new Date(p.fecha).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-2">{estadoBadge(p.estado)}</td>
                   <td className="px-4 py-2 text-right">
-                    ${p.Productos?.reduce((sum, prod) => {
-                      const precio = parseFloat(prod.PedidoProducto?.precio_unitario ?? prod.precio_unitario) || 0;
+                    $
+                    {p.Productos?.reduce((sum, prod) => {
+                      const precio =
+                        parseFloat(
+                          prod.PedidoProducto?.precio_unitario ??
+                          prod.precio_unitario
+                        ) || 0;
                       const cantidad = parseInt(prod.PedidoProducto?.cantidad) || 0;
                       return sum + precio * cantidad;
                     }, 0).toFixed(2)}
@@ -87,12 +155,16 @@ export default function HistorialPedidos() {
                       value={p.estado}
                       onChange={(e) => {
                         const nuevoEstado = e.target.value;
-                        const confirmar = window.confirm(`¿Cambiar estado a "${nuevoEstado}"?`);
+                        const confirmar = window.confirm(
+                          `¿Cambiar estado a "${nuevoEstado}"?`
+                        );
                         if (confirmar) {
                           actualizarEstado(p.id, nuevoEstado);
                         }
                       }}
-                      className="border rounded px-2 py-1"
+                      disabled={p.estado === "pagado"}
+                      className={`border rounded px-2 py-1 ${p.estado === "pagado" ? "bg-gray-200 text-gray-500 cursor-not-allowed" : ""
+                        }`}
                     >
                       {estados.map((estado) => (
                         <option key={estado} value={estado}>
