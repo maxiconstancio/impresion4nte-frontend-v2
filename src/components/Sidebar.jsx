@@ -15,6 +15,7 @@ const navItems = [
       { to: "/productos", label: "Listado", icon: "📦" },
       { to: "/ranking", label: "Ranking", icon: "🏅" },
       { to: "/reposicion", label: "Reposición", icon: "♻️", badgeKey: "reposicion" },
+      { to: "/stock-valorizado", label: "Stock Valorizado", icon: "💰" },
     ],
   },
   {
