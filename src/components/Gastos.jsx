@@ -4,6 +4,10 @@ import api from "../services/api";
 export default function Gastos() {
   const [proveedores, setProveedores] = useState([]);
   const [gastos, setGastos] = useState([]);
+  const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [idEdicion, setIdEdicion] = useState(null);
+
   const [nuevo, setNuevo] = useState({
     tipo: "",
     descripcion: "",
@@ -52,7 +56,13 @@ export default function Gastos() {
       cantidad_cuotas: nuevo.en_cuotas ? parseInt(nuevo.cantidad_cuotas) : null,
       cuotas: nuevo.en_cuotas ? cuotas : [],
     };
-    await api.post("/gastos", data);
+
+    if (modoEdicion && idEdicion) {
+      await api.put(`/gastos/${idEdicion}`, data);
+    } else {
+      await api.post("/gastos", data);
+    }
+
     setNuevo({
       tipo: "",
       descripcion: "",
@@ -62,9 +72,59 @@ export default function Gastos() {
       en_cuotas: false,
       cantidad_cuotas: "",
     });
+    setModoEdicion(false);
+    setIdEdicion(null);
     setCuotas([]);
     cargarGastos();
   };
+
+  const editarGasto = (g) => {
+    setNuevo({
+      tipo: g.tipo,
+      descripcion: g.descripcion,
+      fecha: g.fecha,
+      monto_total: g.monto_total,
+      proveedor_id: g.proveedor_id,
+      en_cuotas: g.en_cuotas,
+      cantidad_cuotas: g.cantidad_cuotas || "",
+    });
+    setModoEdicion(true);
+    setIdEdicion(g.id);
+    setCuotas(g.Cuota || []);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const eliminarGasto = async (id) => {
+    if (window.confirm("¿Seguro que querés eliminar este gasto?")) {
+      await api.delete(`/gastos/${id}`);
+      cargarGastos();
+    }
+  };
+
+  const determinarPeriodo = (g) => {
+    const hoy = new Date();
+    const fechaReferencia = g.en_cuotas
+      ? new Date(g.Cuota?.[0]?.fecha_vencimiento)
+      : new Date(g.fecha);
+
+    const esMismoMes = fechaReferencia.getMonth() === hoy.getMonth() &&
+                       fechaReferencia.getFullYear() === hoy.getFullYear();
+
+    const esMesSiguiente = fechaReferencia.getMonth() === (hoy.getMonth() + 1) % 12 &&
+                           (fechaReferencia.getFullYear() === hoy.getFullYear() ||
+                            (hoy.getMonth() === 11 && fechaReferencia.getFullYear() === hoy.getFullYear() + 1));
+
+    if (fechaReferencia < hoy) return "Vencido";
+    if (esMismoMes) return "Actual";
+    if (esMesSiguiente) return "Mes próximo";
+    return "Futuro";
+  };
+
+  const gastosFiltrados = gastos.filter((g) => {
+    const periodo = determinarPeriodo(g);
+    if (filtroPeriodo === "todos") return true;
+    return periodo === filtroPeriodo;
+  });
 
   useEffect(() => {
     cargarProveedores();
@@ -78,10 +138,9 @@ export default function Gastos() {
       setCuotas([]);
     }
   }, [nuevo.en_cuotas, nuevo.cantidad_cuotas, nuevo.monto_total, nuevo.fecha]);
-
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-bold">💸 Registrar Gasto</h2>
+      <h2 className="text-xl font-bold">{modoEdicion ? "✏️ Editar Gasto" : "💸 Registrar Gasto"}</h2>
       <form onSubmit={guardarGasto} className="grid md:grid-cols-3 gap-4 bg-white p-4 rounded-xl shadow">
         <input
           type="text"
@@ -143,7 +202,7 @@ export default function Gastos() {
           />
         )}
         <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 md:col-span-1">
-          Guardar
+          {modoEdicion ? "Actualizar" : "Guardar"}
         </button>
       </form>
 
@@ -159,6 +218,21 @@ export default function Gastos() {
       )}
 
       <h2 className="text-xl font-bold">📄 Gastos registrados</h2>
+
+      <div className="flex items-center space-x-4 mb-4">
+        <label>Filtrar por período:</label>
+        <select
+          value={filtroPeriodo}
+          onChange={(e) => setFiltroPeriodo(e.target.value)}
+          className="border rounded px-3 py-2"
+        >
+          <option value="todos">Todos</option>
+          <option value="Actual">Actual</option>
+          <option value="Mes próximo">Mes próximo</option>
+          <option value="Vencido">Vencidos</option>
+        </select>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white rounded-xl shadow text-sm">
           <thead>
@@ -169,10 +243,12 @@ export default function Gastos() {
               <th className="px-4 py-2">Proveedor</th>
               <th className="px-4 py-2">Monto</th>
               <th className="px-4 py-2">Cuotas</th>
+              <th className="px-4 py-2">Período</th>
+              <th className="px-4 py-2">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {gastos.map((g) => (
+            {gastosFiltrados.map((g) => (
               <tr key={g.id} className="border-t">
                 <td className="px-4 py-2">{g.fecha}</td>
                 <td className="px-4 py-2">{g.tipo}</td>
@@ -180,9 +256,27 @@ export default function Gastos() {
                 <td className="px-4 py-2">{g.Proveedor?.nombre}</td>
                 <td className="px-4 py-2">${parseFloat(g.monto_total).toFixed(2)}</td>
                 <td className="px-4 py-2">
-                  {g.en_cuotas
-                    ? `${g.cantidad_cuotas} cuotas`
-                    : "Pago único"}
+                  {g.en_cuotas ? `${g.cantidad_cuotas} cuotas` : "Pago único"}
+                </td>
+                <td className="px-4 py-2">
+                  {(() => {
+                    const periodo = determinarPeriodo(g);
+                    const clases = {
+                      "Vencido": "bg-red-100 text-red-800",
+                      "Actual": "bg-green-100 text-green-800",
+                      "Mes próximo": "bg-blue-100 text-blue-800",
+                      "Futuro": "bg-gray-100 text-gray-800",
+                    };
+                    return (
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${clases[periodo]}`}>
+                        {periodo}
+                      </span>
+                    );
+                  })()}
+                </td>
+                <td className="px-4 py-2 space-x-2">
+                  <button onClick={() => editarGasto(g)} className="text-blue-600 hover:underline">✏️</button>
+                  <button onClick={() => eliminarGasto(g.id)} className="text-red-600 hover:underline">🗑️</button>
                 </td>
               </tr>
             ))}

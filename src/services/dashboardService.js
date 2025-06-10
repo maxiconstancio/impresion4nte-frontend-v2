@@ -14,6 +14,11 @@ export async function obtenerProximasCuotas(dias = 15) {
   return res.data;
 }
 
+export async function obtenerResumenCompleto() {
+  const res = await api.get("/dashboard/completo");
+  return res.data;
+}
+
 export async function obtenerEvolucionMensual() {
   const res = await api.get("/dashboard/mensual");
   return res.data;

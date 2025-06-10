@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import logo from "../assets/logo_claro.png"; // asegurate que el logo esté en esta ruta
 
 const navItems = [
   {
@@ -48,8 +49,10 @@ const navItems = [
   },
   {
     title: "Ajustes",
-    items: [{ to: "/parametros", label: "Parámetros", icon: "⚙️" }, 
-      { to: "/importar", label: "Importar", icon: "📁" },],
+    items: [
+      { to: "/parametros", label: "Parámetros", icon: "⚙️" },
+      { to: "/importar", label: "Importar", icon: "📁" },
+    ],
   },
 ];
 
@@ -73,8 +76,11 @@ export default function Sidebar({ abierto, onClose }) {
       )}
 
       {/* Desktop */}
-      <aside className="hidden md:block w-64 min-h-screen bg-white shadow-md">
-        <div className="p-4 text-xl font-bold border-b">🧠 Impresion4nte</div>
+      <aside className="hidden md:block w-64 min-h-screen bg-white shadow-md text-gray-800 font-sans antialiased">
+        <div className="p-4 flex items-center gap-3 border-b">
+          <img src={logo} alt="Logo Impresion4nte" className="w-10 h-10 rounded-md" />
+          <span className="text-lg font-extrabold tracking-tight">Impresion4nte</span>
+        </div>
         <Navegacion />
       </aside>
     </>
@@ -86,7 +92,6 @@ function Navegacion({ onClickItem = () => {}, mobile = false }) {
   const [alertas, setAlertas] = useState({ reposicion: false });
 
   useEffect(() => {
-    // Cargar si hay productos con reposición sugerida
     const verificarReposicion = async () => {
       try {
         const res = await api.get("/productos/sugerir-reposicion-feria");
@@ -98,7 +103,6 @@ function Navegacion({ onClickItem = () => {}, mobile = false }) {
         console.error("Error verificando sugerencias de reposición");
       }
     };
-
     verificarReposicion();
   }, []);
 
@@ -107,12 +111,8 @@ function Navegacion({ onClickItem = () => {}, mobile = false }) {
       {navItems.map((section, i) => (
         <div key={section.title}>
           <div
-            className="text-xs text-gray-400 uppercase font-semibold mb-1 cursor-pointer"
-            onClick={() =>
-              mobile
-                ? setExpanded((prev) => (prev === i ? null : i))
-                : null
-            }
+            className="text-[11px] text-gray-500 uppercase font-semibold tracking-wider mb-2 pl-2"
+            onClick={() => (mobile ? setExpanded((prev) => (prev === i ? null : i)) : null)}
           >
             {section.title}
           </div>
@@ -125,13 +125,17 @@ function Navegacion({ onClickItem = () => {}, mobile = false }) {
                     to={item.to}
                     onClick={onClickItem}
                     className={({ isActive }) =>
-                      `flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 ${
-                        isActive ? "bg-gray-200 font-semibold" : "text-gray-700"
+                      `flex items-center gap-3 px-3 py-2 rounded-lg transition ${
+                        isActive
+                          ? "bg-indigo-100 text-indigo-700 font-semibold"
+                          : "text-gray-700 hover:bg-gray-100"
                       }`
                     }
                   >
-                    <span>{item.icon}</span>
-                    <span>{item.label}</span>
+                    <span className="bg-gray-200 text-gray-800 w-7 h-7 flex items-center justify-center rounded-full text-base">
+                      {item.icon}
+                    </span>
+                    <span className="text-sm font-medium">{item.label}</span>
                     {item.badgeKey && alertas[item.badgeKey] && (
                       <span className="ml-auto text-xs text-red-600 font-bold">🔥</span>
                     )}

@@ -69,7 +69,7 @@ export default function Reposicion() {
     .sort((a, b) => b.faltan - a.faltan);
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-20 px-2 sm:px-4">
       <h2 className="text-xl font-bold">📊 Reposición sugerida por ventas en ferias</h2>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -98,6 +98,40 @@ export default function Reposicion() {
         </div>
       </div>
 
+      {/* Vista mobile - tarjetas */}
+      <div className="block sm:hidden space-y-4">
+        {productosFiltrados.map((p) => (
+          <div key={p.producto_id} className="border rounded shadow p-3 space-y-1">
+            <div className="font-bold text-lg">{p.nombre}</div>
+            <div>📦 Stock: {p.stock_actual}</div>
+            <div>🎯 Mín. actual: {p.stock_minimo_actual}</div>
+            <div>🛒 Vendidos (90d): {p.vendidos_feria_90d}</div>
+            <div>🧮 Sugerido: {p.stock_minimo_sugerido}</div>
+            <div className="text-red-600">❗Faltan: {p.faltan}</div>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() =>
+                  aplicarSugerido(p.producto_id, p.stock_minimo_sugerido).then(cargarReposicion)
+                }
+                className="bg-green-600 text-white px-2 py-1 rounded text-sm"
+              >
+                💾 Aplicar
+              </button>
+              <button
+                onClick={() => {
+                  setReponerProducto(p);
+                  setCantidadReponer("");
+                }}
+                className="bg-blue-600 text-white px-2 py-1 rounded text-sm"
+              >
+                📦 Reponer
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Vista escritorio - tabla */}
       <div className="hidden sm:block overflow-x-auto">
         <table className="min-w-full bg-white rounded-xl shadow text-sm">
           <thead>
@@ -118,7 +152,9 @@ export default function Reposicion() {
                 <td className="px-4 py-2">{p.stock_actual}</td>
                 <td className="px-4 py-2">{p.stock_minimo_actual}</td>
                 <td className="px-4 py-2">{p.vendidos_feria_90d}</td>
-                <td className="px-4 py-2 text-green-600 font-semibold">{p.stock_minimo_sugerido}</td>
+                <td className="px-4 py-2 text-green-600 font-semibold">
+                  {p.stock_minimo_sugerido}
+                </td>
                 <td className="px-4 py-2 text-red-600">{p.faltan}</td>
                 <td className="px-4 py-2 space-x-2">
                   <button

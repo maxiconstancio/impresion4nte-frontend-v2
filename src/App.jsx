@@ -15,7 +15,7 @@ import NuevoPedido from "./components/NuevoPedido";
 import Presupuesto from "./components/Presupuesto";
 import HistorialPedidos from "./components/HistorialPedidos";
 import ListadoPresupuestos from "./components/ListadoPresupuestos";
-
+import RankingProductos from "./components/RankingProductos";
 
 export default function App() {
   return (
@@ -36,6 +36,7 @@ export default function App() {
         <Route path="/presupuestos/nuevo" element={<Presupuesto />} />
         <Route path="/pedidos" element={<HistorialPedidos />} />
         <Route path="/reposicion" element={<Reposicion />} />
+        <Route path="/ranking" element={<RankingProductos />}/> 
         <Route path="*" element={<div className="p-6 text-center">Página no encontrada</div>} />
       </Route>
     </Routes>

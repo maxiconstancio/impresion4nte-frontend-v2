@@ -7,7 +7,7 @@ export default function NuevaVenta() {
   const [venta, setVenta] = useState({
     tipo: "feria",
     metodo_pago: "efectivo",
-    fecha: new Date().toISOString(),
+    fecha: getFechaLocalParaInput(),
     items: [],
   });
   const [toast, setToast] = useState("");
@@ -42,7 +42,12 @@ export default function NuevaVenta() {
     setBusqueda("");
     setSugerencias([]);
   };
-
+  function getFechaLocalParaInput() {
+    const ahora = new Date();
+    const offset = ahora.getTimezoneOffset();
+    const local = new Date(ahora.getTime() - offset * 60 * 1000);
+    return local.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
+  }
   const actualizarCantidad = (producto_id, cantidad) => {
     setVenta({
       ...venta,
@@ -87,7 +92,7 @@ export default function NuevaVenta() {
     setVenta({
       tipo: "feria",
       metodo_pago: "efectivo",
-      fecha: new Date().toISOString(),
+      fecha: getFechaLocalParaInput(),
       items: [],
     });
 
