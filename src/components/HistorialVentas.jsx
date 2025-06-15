@@ -86,7 +86,7 @@ export default function HistorialVentas() {
             <option value="">Todos</option>
             <option value="efectivo">Efectivo</option>
             <option value="debito">Débito</option>
-            <option value="transferencia">Transferencia</option>
+            <option value="mercadopago">Transferencia</option>
           </select>
         </div>
         <div className="flex items-end">

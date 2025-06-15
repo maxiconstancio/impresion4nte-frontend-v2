@@ -9,6 +9,7 @@ export default function NuevaVenta() {
     metodo_pago: "efectivo",
     fecha: getFechaLocalParaInput(),
     items: [],
+    noAjustarStock: false,
   });
   const [toast, setToast] = useState("");
 
@@ -42,12 +43,14 @@ export default function NuevaVenta() {
     setBusqueda("");
     setSugerencias([]);
   };
+
   function getFechaLocalParaInput() {
     const ahora = new Date();
     const offset = ahora.getTimezoneOffset();
     const local = new Date(ahora.getTime() - offset * 60 * 1000);
     return local.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
   }
+
   const actualizarCantidad = (producto_id, cantidad) => {
     setVenta({
       ...venta,
@@ -87,6 +90,7 @@ export default function NuevaVenta() {
       metodo_pago: venta.metodo_pago,
       fecha: venta.fecha,
       productos: venta.items,
+      ajustar_stock: !venta.noAjustarStock,
     });
 
     setVenta({
@@ -94,6 +98,7 @@ export default function NuevaVenta() {
       metodo_pago: "efectivo",
       fecha: getFechaLocalParaInput(),
       items: [],
+      noAjustarStock: false,
     });
 
     setBusqueda("");
@@ -124,7 +129,7 @@ export default function NuevaVenta() {
         >
           <option value="efectivo">Efectivo</option>
           <option value="debito">Débito</option>
-          <option value="transferencia">Transferencia</option>
+          <option value="mercadopago">Transferencia</option>
         </select>
         <input
           type="datetime-local"
@@ -132,6 +137,16 @@ export default function NuevaVenta() {
           onChange={(e) => setVenta({ ...venta, fecha: e.target.value })}
           className="border px-3 py-2 rounded"
         />
+        <label className="flex items-center space-x-2 col-span-full">
+          <input
+            type="checkbox"
+            checked={venta.noAjustarStock}
+            onChange={(e) =>
+              setVenta({ ...venta, noAjustarStock: e.target.checked })
+            }
+          />
+          <span>Registrar venta sin mover stock</span>
+        </label>
       </div>
 
       <div className="relative w-full md:w-1/2">
