@@ -30,7 +30,7 @@ export default function HistorialPedidos() {
             precio_unitario:
               parseFloat(prod.PedidoProducto?.precio_unitario ?? prod.precio_unitario) || 0,
           }));
-
+          console.log(productos)
           await api.post("/ventas", {
             tipo: "pedido",
             metodo_pago: "efectivo",
@@ -38,6 +38,7 @@ export default function HistorialPedidos() {
             cliente: pedido.cliente,
             comentarios: `Venta generada automáticamente desde pedido #${pedido.id}`,
             productos,
+            noAjustarStock: true,
           });
         }
       }
