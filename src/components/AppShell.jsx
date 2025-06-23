@@ -4,7 +4,7 @@ import Sidebar from "./Sidebar";
 
 export default function AppShell() {
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
-
+  console.log(import.meta.env.VITE_API_URL)
   return (
     <div className="min-h-screen flex bg-gray-50 text-gray-900">
       <Sidebar abierto={sidebarAbierto} onClose={() => setSidebarAbierto(false)} />

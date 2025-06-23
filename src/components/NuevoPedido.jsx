@@ -11,7 +11,7 @@ export default function NuevoPedido() {
   useEffect(() => {
     const delayDebounce = setTimeout(async () => {
       if (busqueda.length >= 3) {
-        const res = await api.get(`/productos?search=${busqueda}`);
+        const res = await api.get(`/productos/stock-pedidos?search=${busqueda}`);
         setSugerencias(res.data);
       } else {
         setSugerencias([]);

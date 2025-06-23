@@ -163,8 +163,8 @@ export default function HistorialPedidos() {
                           actualizarEstado(p.id, nuevoEstado);
                         }
                       }}
-                      disabled={p.estado === "pagado"}
-                      className={`border rounded px-2 py-1 ${p.estado === "pagado" ? "bg-gray-200 text-gray-500 cursor-not-allowed" : ""
+                      disabled={p.estado === "pagado"|| p.estado === "entregado"}
+                      className={`border rounded px-2 py-1 ${p.estado === "pagado" || p.estado === "entregado" ? "bg-gray-200 text-gray-500 cursor-not-allowed" : ""
                         }`}
                     >
                       {estados.map((estado) => (

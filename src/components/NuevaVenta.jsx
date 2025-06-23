@@ -13,6 +13,10 @@ export default function NuevaVenta() {
   });
   const [toast, setToast] = useState("");
 
+  // 👇 NEW: matches y modal state
+  const [matches, setMatches] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+
   useEffect(() => {
     const delayDebounce = setTimeout(async () => {
       if (busqueda.length >= 3) {
@@ -37,6 +41,7 @@ export default function NuevaVenta() {
           nombre: producto.nombre,
           precio_unitario: parseFloat(producto.precio_unitario),
           cantidad: 1,
+          stock: producto.stock,
         },
       ],
     });
@@ -48,17 +53,25 @@ export default function NuevaVenta() {
     const ahora = new Date();
     const offset = ahora.getTimezoneOffset();
     const local = new Date(ahora.getTime() - offset * 60 * 1000);
-    return local.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
+    return local.toISOString().slice(0, 16);
   }
 
   const actualizarCantidad = (producto_id, cantidad) => {
-    setVenta({
-      ...venta,
-      items: venta.items.map((i) =>
-        i.producto_id === producto_id
-          ? { ...i, cantidad: parseInt(cantidad) }
-          : i
-      ),
+    setVenta((prev) => {
+      const items = prev.items.map((i) => {
+        if (i.producto_id === producto_id) {
+          let nuevaCantidad = parseInt(cantidad);
+          if (nuevaCantidad > i.stock) {
+            nuevaCantidad = i.stock;
+            mostrarToast(`⚠️ Stock insuficiente: máximo disponible ${i.stock}`);
+          } else if (nuevaCantidad < 1) {
+            nuevaCantidad = 1;
+          }
+          return { ...i, cantidad: nuevaCantidad };
+        }
+        return i;
+      });
+      return { ...prev, items };
     });
   };
 
@@ -89,7 +102,11 @@ export default function NuevaVenta() {
       tipo: venta.tipo,
       metodo_pago: venta.metodo_pago,
       fecha: venta.fecha,
-      productos: venta.items,
+      productos: venta.items.map((i) => ({
+        producto_id: i.producto_id,
+        cantidad: i.cantidad,
+        precio_unitario: i.precio_unitario,
+      })),
       ajustar_stock: !venta.noAjustarStock,
     });
 
@@ -103,8 +120,41 @@ export default function NuevaVenta() {
 
     setBusqueda("");
     setSugerencias([]);
-    setToast("✅ Venta guardada correctamente");
+    mostrarToast("✅ Venta guardada correctamente");
+  };
+
+  const mostrarToast = (mensaje) => {
+    setToast(mensaje);
     setTimeout(() => setToast(""), 3000);
+  };
+
+  // 📸 NUEVO: Manejar foto subida/sacada
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await api.post("/productos/search-by-photo-local", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const { matches } = res.data;
+
+      if (matches && matches.length > 0) {
+        setMatches(matches);
+        setShowModal(true);
+      } else {
+        mostrarToast("⚠️ No se encontraron productos coincidentes");
+      }
+    } catch (err) {
+      console.error(err);
+      mostrarToast("❌ Error al buscar producto");
+    }
+
+    e.target.value = "";
   };
 
   return (
@@ -146,6 +196,20 @@ export default function NuevaVenta() {
             }
           />
           <span>Registrar venta sin mover stock</span>
+        </label>
+      </div>
+
+      {/* 📸 BOTÓN PARA SACAR/SUBIR FOTO */}
+      <div className="flex items-center gap-4 mb-4">
+        <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded">
+          📷 Sacar/Subir Foto
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
         </label>
       </div>
 
@@ -200,6 +264,7 @@ export default function NuevaVenta() {
                       type="number"
                       value={item.cantidad}
                       min={1}
+                      max={item.stock}
                       onChange={(e) =>
                         actualizarCantidad(item.producto_id, e.target.value)
                       }
@@ -252,6 +317,41 @@ export default function NuevaVenta() {
       {toast && (
         <div className="fixed bottom-20 right-4 bg-green-600 text-white px-4 py-2 rounded shadow z-50 animate-fade-in">
           {toast}
+        </div>
+      )}
+
+      {/* 📌 MODAL PARA ELEGIR MATCH */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">
+              Selecciona el producto correcto
+            </h3>
+            <ul className="space-y-2">
+              {matches.map((m) => (
+                <li
+                  key={m.producto.id}
+                  className="border p-3 rounded hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    agregarItem(m.producto);
+                    mostrarToast(`✅ Producto agregado: ${m.producto.nombre}`);
+                    setShowModal(false);
+                  }}
+                >
+                  <div className="font-semibold">{m.producto.nombre}</div>
+                  <div className="text-sm text-gray-500">
+                    Similitud: {(m.score * 100).toFixed(1)}%
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => setShowModal(false)}
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       )}
     </div>
