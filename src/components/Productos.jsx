@@ -8,6 +8,7 @@ export default function Productos() {
   const [editado, setEditado] = useState({});
   const [categorias, setCategorias] = useState([]);
   const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   const [nuevo, setNuevo] = useState({
     nombre: "",
@@ -18,11 +19,12 @@ export default function Productos() {
     activo: true,
     categoria: ""
   });
-  const [busqueda, setBusqueda] = useState("");
   const [parametros, setParametros] = useState({});
 
   const cargarProductos = async () => {
     const res = await api.get("/productos");
+    const cats = Array.from(new Set(res.data.map(item => item.categoria || "General")));
+    setCategorias(cats);
     setProductos(res.data);
   };
 
@@ -34,9 +36,9 @@ export default function Productos() {
       precio_unitario: parseFloat(nuevo.precio_unitario),
       stock: parseInt(nuevo.stock),
       activo: nuevo.activo,
-      categoria:""
+      categoria: nuevo.categoria
     });
-    setNuevo({ nombre: "", descripcion: "", peso: "", precio_unitario: "", stock: 0, activo: true });
+    setNuevo({ nombre: "", descripcion: "", peso: "", precio_unitario: "", stock: 0, activo: true, categoria: "" });
     cargarProductos();
   };
 
@@ -55,6 +57,7 @@ export default function Productos() {
       ...editado,
       precio_unitario: parseFloat(editado.precio_unitario),
       stock: parseInt(editado.stock),
+      categoria: editado.categoria
     });
     cancelarEdicion();
     cargarProductos();
@@ -78,121 +81,144 @@ export default function Productos() {
     });
   }, []);
 
-  useEffect(() => {
-    const calcularPrecioSugerido = async () => {
-      if (
-        nuevo.peso &&
-        parametros.precio_filamento_kg &&
-        parametros.costo_hora_impresora
-      ) {
-        try {
-          const res = await api.post("/productos/recomendar-precio", {
-            peso: parseFloat(nuevo.peso),
-            precio_kilo: parametros.precio_filamento_kg,
-            costo_impresora: parametros.costo_hora_impresora,
-            tipo_venta: "pedido",
-          });
-
-          setNuevo((prev) => ({
-            ...prev,
-            precio_unitario: parseFloat(res.data.precio_final),
-          }));
-        } catch (err) {
-          console.error("Error al calcular precio sugerido:", err);
-        }
-      } else {
-        console.log("Faltan datos para sugerir precio:", {
-          peso: nuevo.peso,
-          parametros,
-        });
-      }
-    };
-
-    calcularPrecioSugerido();
-  }, [nuevo.peso, parametros]);
-
-
-  const productosFiltrados = productos.filter(
-    (p) =>
-      p.activo && p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  // Filtrar por estado, búsqueda y categoría
+  const productosFiltrados = productos.filter((p) =>
+    p.activo &&
+    p.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
+    (!filtroCategoria || p.categoria === filtroCategoria)
   );
+
   return (
     <div className="space-y-8 pb-20">
       <h2 className="text-xl font-bold">📦 Registrar Producto</h2>
 
       <form
-  onSubmit={guardarProducto}
-  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-white p-4 rounded-xl shadow"
->
-  <div className="flex flex-col">
-    <label className="text-sm font-medium text-gray-700 mb-1">Nombre</label>
-    <input type="text" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} className="border rounded px-3 py-2" required />
-  </div>
+        onSubmit={guardarProducto}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-white p-4 rounded-xl shadow"
+      >
+        {/* Nombre */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Nombre</label>
+          <input
+            type="text"
+            value={nuevo.nombre}
+            onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
+            className="border rounded px-3 py-2"
+            required
+          />
+        </div>
 
-  <div className="flex flex-col">
-    <label className="text-sm font-medium text-gray-700 mb-1">Descripción</label>
-    <input type="text" value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} className="border rounded px-3 py-2" />
-  </div>
-  {/* Categoria */}
-  <div className="flex flex-col">
+        {/* Descripción */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Descripción</label>
+          <input
+            type="text"
+            value={nuevo.descripcion}
+            onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })}
+            className="border rounded px-3 py-2"
+          />
+        </div>
+
+        {/* Categoría */}
+        <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">Categoría</label>
           <input
             type="text"
             value={nuevo.categoria}
-            onChange={e => setNuevo({ ...nuevo, categoria: e.target.value })}
+            onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value })}
             className="border rounded px-3 py-2"
             placeholder="Ej: Juguetes, Llaveros..."
             required
           />
         </div>
 
-  <div className="flex flex-col">
-    <label className="text-sm font-medium text-gray-700 mb-1">Peso (g)</label>
-    <input type="number" value={nuevo.peso} onChange={(e) => setNuevo({ ...nuevo, peso: e.target.value })} className="border rounded px-3 py-2" required />
-  </div>
-
-  <div className="flex flex-col">
-    <label className="text-sm font-medium text-gray-700 mb-1">Precio unitario ($)</label>
-    <input type="number" step="0.01" value={nuevo.precio_unitario} onChange={(e) => setNuevo({ ...nuevo, precio_unitario: e.target.value })} className="border rounded px-3 py-2" required />
-  </div>
-
-  <div className="flex flex-col">
-    <label className="text-sm font-medium text-gray-700 mb-1">Stock</label>
-    <input type="number" value={nuevo.stock} onChange={(e) => setNuevo({ ...nuevo, stock: e.target.value })} className="border rounded px-3 py-2" />
-  </div>
-
-  <div className="flex flex-col">
-    <label className="text-sm font-medium text-gray-700 mb-1">Activo</label>
-    <div className="flex items-center space-x-2">
-      <input type="checkbox" checked={nuevo.activo} onChange={(e) => setNuevo({ ...nuevo, activo: e.target.checked })} />
-      <span className="text-sm text-gray-700">Sí</span>
-    </div>
-  </div>
-
-  <div className="lg:col-span-3 sm:col-span-2 col-span-1">
-    <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 w-full">
-      Guardar
-    </button>
-  </div>
-</form>
-{/* Categoria */}
-<div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">Categoría</label>
+        {/* Peso */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Peso (g)</label>
           <input
-            type="text"
-            value={nuevo.categoria}
-            onChange={e => setNuevo({ ...nuevo, categoria: e.target.value })}
+            type="number"
+            value={nuevo.peso}
+            onChange={(e) => setNuevo({ ...nuevo, peso: e.target.value })}
             className="border rounded px-3 py-2"
-            placeholder="Ej: Juguetes, Llaveros..."
             required
           />
         </div>
 
+        {/* Precio */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Precio unitario ($)</label>
+          <input
+            type="number"
+            step="0.01"
+            value={nuevo.precio_unitario}
+            onChange={(e) => setNuevo({ ...nuevo, precio_unitario: e.target.value })}
+            className="border rounded px-3 py-2"
+            required
+          />
+        </div>
 
+        {/* Stock */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Stock</label>
+          <input
+            type="number"
+            value={nuevo.stock}
+            onChange={(e) => setNuevo({ ...nuevo, stock: e.target.value })}
+            className="border rounded px-3 py-2"
+          />
+        </div>
 
-      <h2 className="text-xl font-bold">📄 Productos disponibles</h2>
-      <input type="text" placeholder="Buscar por nombre..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="mb-4 px-3 py-2 border rounded w-full sm:w-1/2" />
+        {/* Activo */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Activo</label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={nuevo.activo}
+              onChange={(e) => setNuevo({ ...nuevo, activo: e.target.checked })}
+            />
+            <span className="text-sm text-gray-700">Sí</span>
+          </div>
+        </div>
 
+        <div className="lg:col-span-3 sm:col-span-2 col-span-1">
+          <button
+            type="submit"
+            className="bg-blue-600 text-white rounded px-4 py-2 w-full"
+          >
+            Guardar
+          </button>
+        </div>
+      </form>
+
+      {/* Filtro por categoría y búsqueda */}
+      <div className="flex flex-wrap items-center space-x-4">
+        <div>
+          <label className="block text-sm font-medium">Categoría</label>
+          <select
+            value={filtroCategoria}
+            onChange={(e) => setFiltroCategoria(e.target.value)}
+            className="p-2 border rounded w-36"
+          >
+            <option value="">Todas</option>
+            {categorias.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium">Buscar</label>
+          <input
+            type="text"
+            placeholder="Buscar por nombre..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
+      </div>
+
+      {/* Listado de productos filtrados */}
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white rounded-xl shadow text-sm">
           <thead>
@@ -206,25 +232,19 @@ export default function Productos() {
               <th className="px-4 py-2">Acciones</th>
             </tr>
           </thead>
-          <tbody>
-            {productosFiltrados.map((p) =>
+          <tbody>            
+            {productosFiltrados.map((p) => (
               editandoId === p.id ? (
                 <tr key={p.id} className="border-t">
                   <td><input className="border px-2 w-full" value={editado.nombre} onChange={(e) => setEditado({ ...editado, nombre: e.target.value })} /></td>
                   <td><input className="border px-2 w-full" value={editado.descripcion} onChange={(e) => setEditado({ ...editado, descripcion: e.target.value })} /></td>
-                  <td>
-                    <input
-                      className="border px-2 w-full"
-                      value={editado.categoria}
-                      onChange={e => setEditado({ ...editado, categoria: e.target.value })}
-                    />
-                  </td>
+                  <td><input className="border px-2 w-full" value={editado.categoria} onChange={(e) => setEditado({ ...editado, categoria: e.target.value })} /></td>
                   <td><input type="number" className="border px-2 w-full" value={editado.precio_unitario} onChange={(e) => setEditado({ ...editado, precio_unitario: e.target.value })} /></td>
                   <td><input type="number" className="border px-2 w-full" value={editado.stock} onChange={(e) => setEditado({ ...editado, stock: e.target.value })} /></td>
-                  <td><input type="checkbox" checked={editado.activo} onChange={(e) => setEditado({ ...editado, activo: e.target.checked })} /></td>
-                  <td>
-                    <button className="text-green-600 mr-2" onClick={guardarEdicion}>💾</button>
-                    <button className="text-gray-600" onClick={cancelarEdicion}>❌</button>
+                  <td><input type="checkbox" className="m-auto block" checked={editado.activo} onChange={(e) => setEditado({ ...editado, activo: e.target.checked })} /></td>
+                  <td className="space-x-2">
+                    <button onClick={guardarEdicion} className="text-green-600">💾</button>
+                    <button onClick={cancelarEdicion} className="text-gray-600">❌</button>
                   </td>
                 </tr>
               ) : (
@@ -234,14 +254,14 @@ export default function Productos() {
                   <td className="px-4 py-2">{p.categoria}</td>
                   <td className="px-4 py-2">${parseFloat(p.precio_unitario).toFixed(2)}</td>
                   <td className="px-4 py-2">{p.stock}</td>
-                  <td className="px-4 py-2">{p.activo ? "✅" : "❌"}</td>
+                  <td className="px-4 py-2">{p.activo ? '✅' : '❌'}</td>
                   <td className="px-4 py-2 space-x-2">
                     <button onClick={() => comenzarEdicion(p)} className="text-blue-600">✏️</button>
                     <button onClick={() => eliminarProducto(p.id)} className="text-red-600">🗑️</button>
                   </td>
                 </tr>
               )
-            )}
+            ))}
           </tbody>
         </table>
       </div>

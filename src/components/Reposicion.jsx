@@ -6,11 +6,15 @@ export default function Reposicion() {
   const [soloDiferentes, setSoloDiferentes] = useState(false);
   const [filtroCategoria, setFiltroCategoria] = useState("");
   const [ordenCategoriaAsc, setOrdenCategoriaAsc] = useState(true);
+  const [categorias, setCategorias] = useState([]);
   const [reponerProducto, setReponerProducto] = useState(null);
   const [cantidadReponer, setCantidadReponer] = useState("");
 
   const cargarReposicion = async () => {
     const res = await api.get("/productos/sugerir-reposicion-feria");
+    // extraer categorías únicas
+    const cats = Array.from(new Set(res.data.map(item => item.categoria || "General")));
+    setCategorias(cats);
     setProductos(res.data);
   };
 
@@ -110,15 +114,18 @@ export default function Reposicion() {
 
       {/* Filtro por categoría con input de texto */}
       <div className="flex items-center space-x-4">
-        <div>
-          <label className="block text-sm mb-1">📂 Categoría</label>
-          <input
-            type="text"
+      <div>
+          <label className="block text-sm font-medium">Categoría</label>
+          <select
             value={filtroCategoria}
             onChange={(e) => setFiltroCategoria(e.target.value)}
-            placeholder="Escribe categoría..."
-            className="border rounded px-3 py-2"
-          />
+            className="p-2 border rounded w-36"
+          >
+            <option value="">Todas</option>
+            {categorias.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
         <button
           onClick={() => setOrdenCategoriaAsc(!ordenCategoriaAsc)}
