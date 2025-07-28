@@ -6,6 +6,9 @@ export default function Productos() {
   const [productos, setProductos] = useState([]);
   const [editandoId, setEditandoId] = useState(null);
   const [editado, setEditado] = useState({});
+  const [categorias, setCategorias] = useState([]);
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+
   const [nuevo, setNuevo] = useState({
     nombre: "",
     descripcion: "",
@@ -13,6 +16,7 @@ export default function Productos() {
     precio_unitario: "",
     stock: 0,
     activo: true,
+    categoria: ""
   });
   const [busqueda, setBusqueda] = useState("");
   const [parametros, setParametros] = useState({});
@@ -30,6 +34,7 @@ export default function Productos() {
       precio_unitario: parseFloat(nuevo.precio_unitario),
       stock: parseInt(nuevo.stock),
       activo: nuevo.activo,
+      categoria:""
     });
     setNuevo({ nombre: "", descripcion: "", peso: "", precio_unitario: "", stock: 0, activo: true });
     cargarProductos();
@@ -128,6 +133,18 @@ export default function Productos() {
     <label className="text-sm font-medium text-gray-700 mb-1">Descripción</label>
     <input type="text" value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} className="border rounded px-3 py-2" />
   </div>
+  {/* Categoria */}
+  <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Categoría</label>
+          <input
+            type="text"
+            value={nuevo.categoria}
+            onChange={e => setNuevo({ ...nuevo, categoria: e.target.value })}
+            className="border rounded px-3 py-2"
+            placeholder="Ej: Juguetes, Llaveros..."
+            required
+          />
+        </div>
 
   <div className="flex flex-col">
     <label className="text-sm font-medium text-gray-700 mb-1">Peso (g)</label>
@@ -158,7 +175,18 @@ export default function Productos() {
     </button>
   </div>
 </form>
-
+{/* Categoria */}
+<div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Categoría</label>
+          <input
+            type="text"
+            value={nuevo.categoria}
+            onChange={e => setNuevo({ ...nuevo, categoria: e.target.value })}
+            className="border rounded px-3 py-2"
+            placeholder="Ej: Juguetes, Llaveros..."
+            required
+          />
+        </div>
 
 
 
@@ -171,6 +199,7 @@ export default function Productos() {
             <tr className="bg-gray-100 text-left text-gray-600">
               <th className="px-4 py-2">Nombre</th>
               <th className="px-4 py-2">Descripción</th>
+              <th className="px-4 py-2">Categoría</th>
               <th className="px-4 py-2">Precio</th>
               <th className="px-4 py-2">Stock</th>
               <th className="px-4 py-2">Activo</th>
@@ -183,6 +212,13 @@ export default function Productos() {
                 <tr key={p.id} className="border-t">
                   <td><input className="border px-2 w-full" value={editado.nombre} onChange={(e) => setEditado({ ...editado, nombre: e.target.value })} /></td>
                   <td><input className="border px-2 w-full" value={editado.descripcion} onChange={(e) => setEditado({ ...editado, descripcion: e.target.value })} /></td>
+                  <td>
+                    <input
+                      className="border px-2 w-full"
+                      value={editado.categoria}
+                      onChange={e => setEditado({ ...editado, categoria: e.target.value })}
+                    />
+                  </td>
                   <td><input type="number" className="border px-2 w-full" value={editado.precio_unitario} onChange={(e) => setEditado({ ...editado, precio_unitario: e.target.value })} /></td>
                   <td><input type="number" className="border px-2 w-full" value={editado.stock} onChange={(e) => setEditado({ ...editado, stock: e.target.value })} /></td>
                   <td><input type="checkbox" checked={editado.activo} onChange={(e) => setEditado({ ...editado, activo: e.target.checked })} /></td>
@@ -195,6 +231,7 @@ export default function Productos() {
                 <tr key={p.id} className="border-t">
                   <td className="px-4 py-2">{p.nombre}</td>
                   <td className="px-4 py-2">{p.descripcion}</td>
+                  <td className="px-4 py-2">{p.categoria}</td>
                   <td className="px-4 py-2">${parseFloat(p.precio_unitario).toFixed(2)}</td>
                   <td className="px-4 py-2">{p.stock}</td>
                   <td className="px-4 py-2">{p.activo ? "✅" : "❌"}</td>

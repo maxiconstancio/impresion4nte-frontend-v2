@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import ModalEditarVenta from "./ModalEditarVenta";
@@ -10,6 +9,8 @@ export default function HistorialVentas() {
   const [filtroMetodo, setFiltroMetodo] = useState("");
   const [filtroDesde, setFiltroDesde] = useState("");
   const [filtroHasta, setFiltroHasta] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [ordenCategoriaAsc, setOrdenCategoriaAsc] = useState(true);
 
   const cargarVentas = async () => {
     const res = await api.get("/ventas");
@@ -27,13 +28,35 @@ export default function HistorialVentas() {
     cargarVentas();
   }, []);
 
-  const ventasFiltradas = ventas.filter((v) => {
-    const fechaOk =
-      (!filtroDesde || v.fecha >= filtroDesde) &&
-      (!filtroHasta || v.fecha <= filtroHasta);
-    const tipoOk = !filtroTipo || v.tipo === filtroTipo;
-    const metodoOk = !filtroMetodo || v.metodo_pago === filtroMetodo;
-    return fechaOk && tipoOk && metodoOk;
+  // Extraer categorías únicas de todas las ventas
+  const categorias = Array.from(
+    new Set(
+      ventas.flatMap(v => v.productos.map(p => p.producto?.categoria || 'General'))
+    )
+  );
+
+  // Filtrar por fecha, tipo, método y categoría
+  const ventasFiltradas = ventas
+    .filter(v => {
+      const fechaOk =
+        (!filtroDesde || v.fecha >= filtroDesde) &&
+        (!filtroHasta || v.fecha <= filtroHasta);
+      const tipoOk = !filtroTipo || v.tipo === filtroTipo;
+      const metodoOk = !filtroMetodo || v.metodo_pago === filtroMetodo;
+      const categoriaOk =
+        !filtroCategoria || v.productos.some(
+          vp => vp.producto?.categoria === filtroCategoria
+        );
+      return fechaOk && tipoOk && metodoOk && categoriaOk;
+    });
+
+  // Ordenar por categoría de primer producto
+  const ventasOrdenadas = ventasFiltradas.slice().sort((a, b) => {
+    const catA = a.productos[0]?.producto?.categoria || '';
+    const catB = b.productos[0]?.producto?.categoria || '';
+    return ordenCategoriaAsc
+      ? catA.localeCompare(catB)
+      : catB.localeCompare(catA);
   });
 
   const totalGeneral = ventasFiltradas.reduce(
@@ -96,12 +119,36 @@ export default function HistorialVentas() {
               setFiltroHasta("");
               setFiltroTipo("");
               setFiltroMetodo("");
+              setFiltroCategoria("");
             }}
             className="w-full bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
           >
             Limpiar filtros
           </button>
         </div>
+      </div>
+
+      {/* Filtro y orden por categoría */}
+      <div className="flex items-center space-x-4">
+        <div>
+          <label className="block text-sm mb-1">📂 Categoría</label>
+          <select
+            value={filtroCategoria}
+            onChange={(e) => setFiltroCategoria(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+          >
+            <option value="">Todas</option>
+            {categorias.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={() => setOrdenCategoriaAsc(!ordenCategoriaAsc)}
+          className="mt-6 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+        >
+          Ordenar por categoría {ordenCategoriaAsc ? '⬆️' : '⬇️'}
+        </button>
       </div>
 
       {/* VISTA DESKTOP */}
@@ -112,13 +159,14 @@ export default function HistorialVentas() {
               <th className="px-4 py-2 text-left">🕒 Fecha</th>
               <th className="px-4 py-2 text-left">Tipo</th>
               <th className="px-4 py-2 text-left">Método</th>
+              <th className="px-4 py-2 text-left">Categoría</th>
               <th className="px-4 py-2 text-right">Total</th>
               <th className="px-4 py-2">🧾 Productos</th>
               <th className="px-4 py-2 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {ventasFiltradas.map((v) => (
+            {ventasOrdenadas.map((v) => (
               <tr key={v.id} className="border-t odd:bg-gray-50 hover:bg-blue-50">
                 <td className="px-4 py-2 whitespace-nowrap">
                   {new Date(v.fecha).toLocaleString("es-AR", {
@@ -142,6 +190,9 @@ export default function HistorialVentas() {
                       : "bg-purple-100 text-purple-800"
                   }`}>{v.metodo_pago}</span>
                 </td>
+                <td className="px-4 py-2">
+                  {v.productos.map(vp => vp.producto?.categoria).filter((c, i, arr) => arr.indexOf(c) === i).join(", ")}
+                </td>
                 <td className="px-4 py-2 text-right font-semibold">
                   ${parseFloat(v.total).toFixed(2)}
                 </td>
@@ -149,7 +200,7 @@ export default function HistorialVentas() {
                   <ul className="ml-2 space-y-1 list-disc text-sm">
                     {v.productos.map((vp) => (
                       <li key={vp.id}>
-                        {vp.producto?.nombre} × {vp.cantidad} ={" "}
+                        {vp.producto?.nombre} × {vp.cantidad} ={' '}
                         <strong>${(vp.precio_unitario * vp.cantidad).toFixed(2)}</strong>
                       </li>
                     ))}
@@ -167,7 +218,7 @@ export default function HistorialVentas() {
 
       {/* VISTA MOBILE */}
       <div className="sm:hidden space-y-4">
-        {ventasFiltradas.map((v) => (
+        {ventasOrdenadas.map((v) => (
           <div key={v.id} className="border rounded shadow p-3 bg-white">
             <div className="text-sm text-gray-500 mb-1">
               {new Date(v.fecha).toLocaleString("es-AR", {
@@ -188,21 +239,24 @@ export default function HistorialVentas() {
                   : v.metodo_pago === "debito" ? "bg-indigo-100 text-indigo-800"
                   : "bg-purple-100 text-purple-800"
               }`}>{v.metodo_pago}</span>
-              <span className="text-sm font-bold text-right">
-                ${parseFloat(v.total).toFixed(2)}
-              </span>
+            </div>
+            <div className="mt-2 text-sm">
+              <strong>Categoría:</strong> {v.productos.map(vp => vp.producto?.categoria).filter((c, i, arr) => arr.indexOf(c) === i).join(", ")}
             </div>
             <ul className="mt-2 space-y-1 text-sm">
               {v.productos.map((vp) => (
                 <li key={vp.id}>
-                  {vp.producto?.nombre} × {vp.cantidad} ={" "}
+                  {vp.producto?.nombre} × {vp.cantidad} ={' '}
                   <strong>${(vp.precio_unitario * vp.cantidad).toFixed(2)}</strong>
                 </li>
               ))}
             </ul>
-            <div className="flex justify-end gap-3 mt-3">
-              <button onClick={() => setVentaSeleccionada(v)} className="text-blue-600 text-sm">✏️ Editar</button>
-              <button onClick={() => eliminarVenta(v.id)} className="text-red-600 text-sm">🗑️ Eliminar</button>
+            <div className="flex justify-between items-center mt-3">
+              <span className="text-sm font-bold">${parseFloat(v.total).toFixed(2)}</span>
+              <div className="flex gap-3">
+                <button onClick={() => setVentaSeleccionada(v)} className="text-blue-600 text-sm">✏️ Editar</button>
+                <button onClick={() => eliminarVenta(v.id)} className="text-red-600 text-sm">🗑️ Eliminar</button>
+              </div>
             </div>
           </div>
         ))}

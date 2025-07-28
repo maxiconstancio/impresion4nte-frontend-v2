@@ -4,6 +4,8 @@ import api from "../services/api";
 export default function Reposicion() {
   const [productos, setProductos] = useState([]);
   const [soloDiferentes, setSoloDiferentes] = useState(false);
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [ordenCategoriaAsc, setOrdenCategoriaAsc] = useState(true);
   const [reponerProducto, setReponerProducto] = useState(null);
   const [cantidadReponer, setCantidadReponer] = useState("");
 
@@ -11,6 +13,10 @@ export default function Reposicion() {
     const res = await api.get("/productos/sugerir-reposicion-feria");
     setProductos(res.data);
   };
+
+  useEffect(() => {
+    cargarReposicion();
+  }, []);
 
   const aplicarSugerido = async (producto_id, nuevoMinimo) => {
     try {
@@ -52,21 +58,26 @@ export default function Reposicion() {
     }
   };
 
-  useEffect(() => {
-    cargarReposicion();
-  }, []);
-
   const productosFiltrados = productos
     .filter((p) =>
-      soloDiferentes
-        ? p.stock_minimo_sugerido !== p.stock_minimo_actual
-        : true
+      (soloDiferentes ? p.stock_minimo_sugerido !== p.stock_minimo_actual : true) &&
+      (!filtroCategoria ||
+        (p.categoria || "General").toLowerCase().includes(filtroCategoria.toLowerCase()))
     )
     .map((p) => ({
       ...p,
       faltan: p.stock_minimo_sugerido - p.stock_actual,
     }))
-    .sort((a, b) => b.faltan - a.faltan);
+    .sort((a, b) => {
+      const catA = a.categoria || "";
+      const catB = b.categoria || "";
+      if (catA !== catB) {
+        return ordenCategoriaAsc
+          ? catA.localeCompare(catB)
+          : catB.localeCompare(catA);
+      }
+      return b.faltan - a.faltan;
+    });
 
   return (
     <div className="space-y-6 pb-20 px-2 sm:px-4">
@@ -88,7 +99,6 @@ export default function Reposicion() {
           <div className="text-sm text-gray-500 text-right">
             Mostrando {productosFiltrados.length} de {productos.length} productos
           </div>
-
           <button
             onClick={aplicarTodos}
             className="bg-green-700 text-white px-3 py-1 rounded text-sm"
@@ -98,6 +108,26 @@ export default function Reposicion() {
         </div>
       </div>
 
+      {/* Filtro por categoría con input de texto */}
+      <div className="flex items-center space-x-4">
+        <div>
+          <label className="block text-sm mb-1">📂 Categoría</label>
+          <input
+            type="text"
+            value={filtroCategoria}
+            onChange={(e) => setFiltroCategoria(e.target.value)}
+            placeholder="Escribe categoría..."
+            className="border rounded px-3 py-2"
+          />
+        </div>
+        <button
+          onClick={() => setOrdenCategoriaAsc(!ordenCategoriaAsc)}
+          className="mt-6 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+        >
+          Ordenar por categoría {ordenCategoriaAsc ? '⬆️' : '⬇️'}
+        </button>
+      </div>
+
       {/* Vista mobile - tarjetas */}
       <div className="block sm:hidden space-y-4">
         {productosFiltrados.map((p) => (
@@ -105,6 +135,7 @@ export default function Reposicion() {
             <div className="font-bold text-lg">{p.nombre}</div>
             <div>📦 Stock: {p.stock_actual}</div>
             <div>🎯 Mín. actual: {p.stock_minimo_actual}</div>
+            <div>📂 Categoría: {p.categoria}</div>
             <div>🛒 Vendidos (90d): {p.vendidos_feria_90d}</div>
             <div>🧮 Sugerido: {p.stock_minimo_sugerido}</div>
             <div className="text-red-600">❗Faltan: {p.faltan}</div>
@@ -137,6 +168,7 @@ export default function Reposicion() {
           <thead>
             <tr className="bg-gray-100 text-left text-gray-600">
               <th className="px-4 py-2">Nombre</th>
+              <th className="px-4 py-2">Categoría</th>
               <th className="px-4 py-2">Stock</th>
               <th className="px-4 py-2">Mín. actual</th>
               <th className="px-4 py-2">Vendidos (90d)</th>
@@ -149,6 +181,7 @@ export default function Reposicion() {
             {productosFiltrados.map((p) => (
               <tr key={p.producto_id} className="border-t">
                 <td className="px-4 py-2">{p.nombre}</td>
+                <td className="px-4 py-2">{p.categoria}</td>
                 <td className="px-4 py-2">{p.stock_actual}</td>
                 <td className="px-4 py-2">{p.stock_minimo_actual}</td>
                 <td className="px-4 py-2">{p.vendidos_feria_90d}</td>
@@ -159,9 +192,7 @@ export default function Reposicion() {
                 <td className="px-4 py-2 space-x-2">
                   <button
                     onClick={() =>
-                      aplicarSugerido(p.producto_id, p.stock_minimo_sugerido).then(
-                        cargarReposicion
-                      )
+                      aplicarSugerido(p.producto_id, p.stock_minimo_sugerido).then(cargarReposicion)
                     }
                     className="bg-green-600 text-white px-2 py-1 rounded"
                   >
@@ -189,8 +220,7 @@ export default function Reposicion() {
           <div className="bg-white p-6 rounded shadow-md w-full max-w-md space-y-4">
             <h3 className="text-lg font-bold">📦 Reponer producto</h3>
             <p>
-              <strong>{reponerProducto.nombre}</strong> — Stock actual:{" "}
-              {reponerProducto.stock_actual}
+              <strong>{reponerProducto.nombre}</strong> — Stock actual: {reponerProducto.stock_actual}
             </p>
             <input
               type="number"
